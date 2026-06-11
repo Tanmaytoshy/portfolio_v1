@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TANMAY.OS — Product Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060807;
+  --panel:#0b0e0c;
+  --line:rgba(198,255,77,.14);
+  --line2:rgba(255,255,255,.08);
+  --txt:#eef2ea;
+  --mut:#7d8a78;
+  --acc:#c6ff4d;          /* electric lime */
+  --acc2:#5ef2ff;         /* signal cyan  */
+  --hot:#ff5470;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Space Grotesk',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.6;overflow-x:hidden;
+  background-image:
+    linear-gradient(rgba(198,255,77,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(198,255,77,.035) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+::selection{background:var(--acc);color:#000}
+a{color:inherit}
+.mono{font-family:var(--mono)}
+
+/* ====== custom cursor ====== */
+@media(pointer:fine){
+  body{cursor:none}
+  a,button,[draggable],input{cursor:none}
+  #curDot{position:fixed;width:6px;height:6px;border-radius:50%;background:var(--acc);z-index:9999;pointer-events:none;transform:translate(-50%,-50%)}
+  #curRing{position:fixed;width:34px;height:34px;border-radius:50%;border:1px solid rgba(198,255,77,.5);z-index:9999;pointer-events:none;transform:translate(-50%,-50%);transition:width .2s,height .2s,border-color .2s}
+  body.hovering #curRing{width:54px;height:54px;border-color:var(--acc2)}
+}
+@media(pointer:coarse){#curDot,#curRing{display:none}}
+
+/* ====== boot overlay ====== */
+#boot{
+  position:fixed;inset:0;background:#040504;z-index:1000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;font-family:var(--mono);transition:opacity .5s,visibility .5s;
+}
+#boot.done{opacity:0;visibility:hidden}
+#boot .blogo{font-size:clamp(1.4rem,4vw,2.2rem);font-weight:700;letter-spacing:4px;color:var(--acc)}
+#boot .bline{font-size:.75rem;color:var(--mut);height:1.2em}
+#boot .bbar{width:min(360px,70vw);height:3px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+#boot .bbar i{display:block;height:100%;width:0;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+
+/* ====== topbar ====== */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;gap:18px;
+  padding:0 22px;height:54px;background:rgba(6,8,7,.82);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.75rem;
+}
+#topbar .brand{font-weight:700;letter-spacing:2px;color:var(--acc)}
+#topbar .brand span{color:var(--txt)}
+#topbar nav{display:flex;gap:4px;margin-left:8px}
+#topbar nav a{
+  text-decoration:none;color:var(--mut);padding:5px 12px;border-radius:6px;transition:all .2s;
+}
+#topbar nav a:hover{color:var(--acc);background:rgba(198,255,77,.08)}
+#topbar .right{margin-left:auto;display:flex;align-items:center;gap:16px;color:var(--mut)}
+.live{display:flex;align-items:center;gap:7px}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.kbd{
+  border:1px solid var(--line2);border-radius:6px;padding:4px 10px;background:rgba(255,255,255,.03);
+  color:var(--mut);font-family:var(--mono);font-size:.72rem;transition:all .2s;cursor:pointer;
+}
+.kbd:hover{color:var(--acc);border-color:var(--acc)}
+@media(max-width:860px){#topbar nav{display:none}}
+
+/* ====== ticker ====== */
+.ticker{
+  position:fixed;top:54px;left:0;right:0;z-index:99;overflow:hidden;white-space:nowrap;
+  border-bottom:1px solid var(--line);background:rgba(6,8,7,.7);backdrop-filter:blur(8px);
+  font-family:var(--mono);font-size:.68rem;letter-spacing:2px;color:var(--mut);padding:7px 0;
+}
+.ticker .tk{display:inline-block;animation:scrolltk 30s linear infinite}
+.ticker b{color:var(--acc);font-weight:500}
+@keyframes scrolltk{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ====== layout ====== */
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px;position:relative;z-index:2}
+section{padding:84px 0}
+.mod-head{display:flex;align-items:baseline;gap:16px;margin-bottom:36px;font-family:var(--mono)}
+.mod-head .tag{color:var(--acc);font-size:.72rem;letter-spacing:2px}
+.mod-head h2{font-family:var(--sans);font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:700;letter-spacing:-.5px}
+.mod-head .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+/* ====== panels ====== */
+.panel{
+  background:var(--panel);border:1px solid var(--line2);border-radius:14px;position:relative;
+  transition:transform .3s,border-color .3s,box-shadow .3s;
+}
+.panel:hover{border-color:rgba(198,255,77,.35);transform:translateY(-3px);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.panel .ph{
+  display:flex;justify-content:space-between;align-items:center;padding:10px 16px;
+  border-bottom:1px solid var(--line2);font-family:var(--mono);font-size:.66rem;color:var(--mut);letter-spacing:1px;
+}
+.panel .ph .dot3{display:flex;gap:5px}
+.panel .ph .dot3 i{width:7px;height:7px;border-radius:50%;background:#222a22;border:1px solid var(--line2)}
+.panel .pb{padding:18px}
+
+/* ====== hero ====== */
+#hero{padding-top:170px;min-height:96vh;display:flex;flex-direction:column;justify-content:center}
+.hero-grid{display:grid;grid-template-columns:1.25fr .9fr;gap:26px;align-items:stretch}
+@media(max-width:920px){.hero-grid{grid-template-columns:1fr}}
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:3px;color:var(--acc);margin-bottom:18px}
+.eyebrow::before{content:'▸ '}
+#hero h1{
+  font-size:clamp(2.7rem,7.2vw,5rem);font-weight:700;line-height:.98;letter-spacing:-2px;text-transform:uppercase;
+}
+#hero h1 .stroke{
+  color:transparent;-webkit-text-stroke:1.5px rgba(238,242,234,.55);
+}
+#hero h1 .lit{color:var(--acc);text-shadow:0 0 40px rgba(198,255,77,.35)}
+.role-line{font-family:var(--mono);font-size:clamp(.75rem,1.8vw,.95rem);margin-top:26px;color:var(--mut);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.role-line .now{color:var(--txt);border:1px solid var(--line);background:rgba(198,255,77,.06);padding:6px 14px;border-radius:100px}
+.role-line .arrow{color:var(--acc)}
+.role-line .next{color:#000;background:var(--acc);padding:6px 14px;border-radius:100px;font-weight:700;animation:nextglow 2.4s ease-in-out infinite}
+@keyframes nextglow{0%,100%{box-shadow:0 0 14px rgba(198,255,77,.35)}50%{box-shadow:0 0 34px rgba(198,255,77,.75)}}
+.hero-cta{display:flex;gap:14px;margin-top:36px;flex-wrap:wrap}
+.btn{
+  font-family:var(--mono);font-size:.82rem;font-weight:700;letter-spacing:1px;text-decoration:none;
+  padding:14px 28px;border-radius:10px;border:none;transition:all .25s;display:inline-block;
+}
+.btn-acc{background:var(--acc);color:#000;box-shadow:0 0 24px rgba(198,255,77,.3)}
+.btn-acc:hover{transform:translateY(-3px);box-shadow:0 0 44px rgba(198,255,77,.55)}
+.btn-line{color:var(--txt);border:1px solid var(--line2);background:rgba(255,255,255,.02)}
+.btn-line:hover{border-color:var(--acc2);color:var(--acc2);transform:translateY(-3px)}
+
+/* hero terminal */
+.term{font-family:var(--mono);font-size:clamp(.62rem,1.5vw,.78rem);line-height:1.9}
+.term .pb{min-height:240px}
+.term .pr{color:var(--acc)}
+.term .cy{color:var(--acc2)}
+.term .gd{color:var(--mut)}
+.term .caret{display:inline-block;width:8px;height:14px;background:var(--acc);vertical-align:-2px;animation:pulse 1s steps(1) infinite}
+
+/* ====== KPI bento ====== */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-top:26px}
+.kpi{padding:20px 18px 14px}
+.kpi .v{font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--acc)}
+.kpi .l{font-size:.74rem;color:var(--mut);margin:4px 0 10px}
+.kpi canvas{width:100%;height:30px;display:block}
+
+/* ====== roadmap kanban ====== */
+.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:880px){.kanban{grid-template-columns:1fr}}
+.kcol{min-height:300px;display:flex;flex-direction:column;border-radius:14px;border:1px dashed var(--line2);padding:14px;transition:border-color .25s,background .25s}
+.kcol.over{border-color:var(--acc);background:rgba(198,255,77,.04)}
+.kcol h3{font-family:var(--mono);font-size:.72rem;letter-spacing:2px;color:var(--mut);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.kcol h3 i{width:8px;height:8px;border-radius:50%}
+.kcol[data-col="shipped"] h3 i{background:var(--acc)}
+.kcol[data-col="progress"] h3 i{background:var(--acc2)}
+.kcol[data-col="next"] h3 i{background:var(--hot)}
+.kcard{
+  background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:14px;margin-bottom:12px;
+  transition:transform .2s,border-color .2s,opacity .2s;
+}
+.kcard:hover{border-color:rgba(198,255,77,.4);transform:translateY(-2px)}
+.kcard.dragging{opacity:.4;transform:rotate(2deg) scale(.98)}
+.kcard .kt{font-size:.92rem;font-weight:600;margin-bottom:4px}
+.kcard .kd{font-size:.76rem;color:var(--mut)}
+.kcard .km{font-family:var(--mono);font-size:.62rem;color:var(--acc);margin-top:9px;letter-spacing:1px}
+.kcard.special{border:1px solid rgba(198,255,77,.55);background:linear-gradient(160deg,rgba(198,255,77,.1),transparent);animation:nextglow 2.6s infinite}
+.drag-hint{font-family:var(--mono);font-size:.66rem;color:var(--mut);margin-top:8px;text-align:right}
+.drag-hint b{color:var(--acc);font-weight:500}
+
+/* ====== changelog ====== */
+.clog{font-family:var(--mono)}
+.clog .row{
+  display:grid;grid-template-columns:120px 96px 1fr;gap:18px;padding:18px 16px;border-bottom:1px solid var(--line2);
+  transition:background .2s;align-items:baseline;
+}
+.clog .row:hover{background:rgba(198,255,77,.04)}
+.clog .ver{color:var(--acc);font-weight:700;font-size:.86rem}
+.clog .date{color:var(--mut);font-size:.7rem}
+.clog .desc{font-family:var(--sans);font-size:.92rem}
+.clog .desc b{color:var(--acc2);font-weight:600}
+.clog .desc small{display:block;color:var(--mut);font-size:.78rem;margin-top:3px}
+.clog .row.current{border-left:3px solid var(--acc);background:rgba(198,255,77,.05)}
+.clog .row.beta .ver{color:var(--hot)}
+@media(max-width:680px){.clog .row{grid-template-columns:1fr;gap:4px}}
+
+/* ====== experiments flip cards ====== */
+.exps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.flip{perspective:1100px;height:230px}
+.flip-in{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.4,.1,.2,1)}
+.flip:hover .flip-in,.flip.tapped .flip-in{transform:rotateY(180deg)}
+.face{
+  position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;padding:22px;
+  display:flex;flex-direction:column;gap:10px;border:1px solid var(--line2);background:var(--panel);
+}
+.face .fl{font-family:var(--mono);font-size:.62rem;letter-spacing:2px;color:var(--mut)}
+.face p{font-size:.95rem;font-weight:500;line-height:1.5}
+.face.back{transform:rotateY(180deg);border-color:rgba(198,255,77,.45);background:linear-gradient(160deg,rgba(198,255,77,.08),var(--panel))}
+.face.back .fl{color:var(--acc)}
+.face .flipnote{margin-top:auto;font-family:var(--mono);font-size:.62rem;color:var(--mut)}
+
+/* ====== stack ====== */
+.stackgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.chip{
+  font-family:var(--mono);font-size:.74rem;border:1px solid var(--line2);border-radius:8px;padding:8px 14px;
+  background:rgba(255,255,255,.02);display:inline-block;margin:0 8px 10px 0;transition:all .2s;
+}
+.chip:hover{border-color:var(--acc);color:var(--acc);transform:translateY(-2px);box-shadow:0 6px 16px rgba(198,255,77,.15)}
+.stackgrid h3{font-size:.95rem;margin-bottom:14px;color:var(--acc2);font-family:var(--mono);font-weight:500}
+
+/* ====== why pm ====== */
+.manifesto{padding:46px;text-align:left}
+.manifesto p.big{font-size:clamp(1.25rem,3vw,1.9rem);font-weight:600;line-height:1.45;letter-spacing:-.5px}
+.manifesto p.big em{color:var(--acc);font-style:normal}
+.manifesto p.sub{color:var(--mut);margin-top:18px;max-width:760px;font-size:.98rem}
+
+/* ====== contact ====== */
+#contact .panel{text-align:center;padding:70px 30px}
+#contact h2{font-size:clamp(2rem,5.5vw,3.4rem);font-weight:700;letter-spacing:-1.5px;text-transform:uppercase}
+#contact h2 span{color:var(--acc)}
+#contact p{color:var(--mut);max-width:520px;margin:16px auto 34px}
+footer{font-family:var(--mono);font-size:.68rem;color:var(--mut);text-align:center;padding:34px 0;border-top:1px solid var(--line2);margin-top:50px;letter-spacing:1px}
+
+/* ====== command palette ====== */
+#palWrap{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding-top:16vh}
+#palWrap.open{display:flex}
+#pal{width:min(560px,92vw);background:#0a0d0b;border:1px solid rgba(198,255,77,.35);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.7)}
+#pal input{
+  width:100%;background:transparent;border:none;outline:none;color:var(--txt);
+  font-family:var(--mono);font-size:.95rem;padding:18px 20px;border-bottom:1px solid var(--line2);
+}
+#pal .items{max-height:300px;overflow-y:auto}
+#pal .item{
+  display:flex;justify-content:space-between;padding:13px 20px;font-family:var(--mono);font-size:.8rem;
+  color:var(--mut);cursor:pointer;transition:all .15s;
+}
+#pal .item:hover,#pal .item.sel{background:rgba(198,255,77,.08);color:var(--acc)}
+#pal .item span:last-child{font-size:.66rem;opacity:.6}
+
+/* ====== toasts ====== */
+#toasts{position:fixed;bottom:22px;right:22px;z-index:600;display:flex;flex-direction:column;gap:10px}
+.toast{
+  font-family:var(--mono);font-size:.74rem;background:#0c0f0d;border:1px solid rgba(198,255,77,.4);
+  border-radius:10px;padding:13px 18px;color:var(--txt);box-shadow:0 14px 34px rgba(0,0,0,.6);
+  transform:translateX(120%);transition:transform .45s cubic-bezier(.34,1.4,.64,1);max-width:320px;
+}
+.toast.in{transform:none}
+.toast b{color:var(--acc);font-weight:500}
+
+/* ====== confetti ====== */
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:700}
+
+/* ====== reveal ====== */
+.rv{opacity:0;transform:translateY(30px);transition:opacity .7s,transform .7s}
+.rv.show{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<div id="curDot"></div><div id="curRing"></div>
+<canvas id="confetti"></canvas>
+
+<!-- boot -->
+<div id="boot">
+  <div class="blogo">TANMAY.OS</div>
+  <div class="bbar"><i id="bootBar"></i></div>
+  <div class="bline" id="bootLine">initializing…</div>
+</div>
+
+<!-- topbar -->
+<div id="topbar">
+  <div class="brand">TNMY<span>.OS</span></div>
+  <nav>
+    <a href="#metrics">metrics</a>
+    <a href="#roadmap">roadmap</a>
+    <a href="#changelog">changelog</a>
+    <a href="#experiments">experiments</a>
+    <a href="#stack">stack</a>
+    <a href="#contact">contact</a>
+  </nav>
+  <div class="right">
+    <div class="live"><i></i>ONLINE</div>
+    <span id="clock">--:--:--</span>
+    <button class="kbd" id="palBtn">⌘K</button>
+  </div>
+</div>
+
+<!-- ticker -->
+<div class="ticker"><div class="tk" id="tk"></div></div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="eyebrow">PRODUCT SPEC SHEET — HUMAN, v3.0</div>
+    <div class="hero-grid">
+      <div>
+        <h1><span class="stroke">TANMAY</span><br><span class="lit">TOSHNIWAL</span></h1>
+        <div class="role-line">
+          <span class="now">● NOW: Product Ops @ GoKwik</span>
+          <span class="arrow">──▶</span>
+          <span class="next">NEXT RELEASE: PRODUCT MANAGER</span>
+        </div>
+        <div class="hero-cta">
+          <a class="btn btn-acc" href="#contact">REQUEST A DEMO →</a>
+          <button class="btn btn-line" id="palBtn2">OPEN COMMAND PALETTE ⌘K</button>
+        </div>
+      </div>
+      <div class="panel term">
+        <div class="ph"><div class="dot3"><i></i><i></i><i></i></div><span>about.sh — zsh</span><span></span></div>
+        <div class="pb" id="termBody"></div>
+      </div>
+    </div>
+
+    <!-- KPI bento -->
+    <div class="kpis" id="kpis">
+      <div class="panel kpi rv"><div class="v" data-n="100" data-suf="+">0</div><div class="l">Fortune-100 client engagements</div><canvas></canvas></div>
+      <div class="panel kpi rv"><div class="v" data-n="8.20" data-dec="2">0</div><div class="l">CGPA · B.E. Computer Science</div><canvas></canvas></div>
+      <div class="panel kpi rv"><div class="v" data-n="2">0</div><div class="l">AWS certifications</div><canvas></canvas></div>
+      <div class="panel kpi rv"><div class="v" data-n="5" data-suf="×">0</div><div class="l">"Best Geek" awards</div><canvas></canvas></div>
+      <div class="panel kpi rv"><div class="v" data-n="70" data-suf="%">0</div><div class="l">skill growth in one internship</div><canvas></canvas></div>
+    </div>
+  </section>
+
+  <!-- METRICS / OPERATING PRINCIPLES -->
+  <section id="metrics" class="rv">
+    <div class="mod-head"><span class="tag">MODULE_01</span><h2>Why ops → product</h2><div class="rule"></div></div>
+    <div class="panel manifesto">
+      <p class="big">Product Ops is the <em>backstage pass</em> to product management — I've seen exactly where products break, where users rage-quit, and where roadmaps go to die. <em>Now I want to own the "why".</em></p>
+      <p class="sub">From resolving Fortune-100 escalations at Cvent to running the operational engine behind product at GoKwik, I've built the muscle PMs need most: turning messy signals into decisions, aligning eng–design–business without authority, and shipping through process, data, and sheer follow-through.</p>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section id="roadmap" class="rv">
+    <div class="mod-head"><span class="tag">MODULE_02</span><h2>Career roadmap</h2><div class="rule"></div></div>
+    <div class="kanban" id="kanban">
+      <div class="kcol" data-col="shipped">
+        <h3><i></i>SHIPPED</h3>
+        <div class="kcard" draggable="true"><div class="kt">B.E. Computer Science</div><div class="kd">Chandigarh University · CGPA 8.20 · President, CSI · 40% merit scholarship</div><div class="km">RELEASED 05/2025</div></div>
+        <div class="kcard" draggable="true"><div class="kt">Front-End Developer Internship</div><div class="kd">YoursthatSenior · shipped client & portfolio sites · +70% skill growth</div><div class="km">RELEASED 01/2023</div></div>
+        <div class="kcard" draggable="true"><div class="kt">Fortune-100 Technical Support</div><div class="kd">Cvent · event-tech implementations · Salesforce + JIRA · direct US enterprise clients</div><div class="km">RELEASED 07/2025</div></div>
+        <div class="kcard" draggable="true"><div class="kt">AWS Cloud Foundations</div><div class="kd">Solutions Architect Knowledge Badge · Cloud Practitioner Essentials</div><div class="km">CERTIFIED</div></div>
+      </div>
+      <div class="kcol" data-col="progress">
+        <h3><i></i>IN PROGRESS</h3>
+        <div class="kcard" draggable="true"><div class="kt">Product Ops @ GoKwik</div><div class="kd">Operational engine for product — cross-functional alignment across product, eng & CS; process automation; insight loops that feed roadmap calls</div><div class="km">SHIPPING SINCE 08/2025</div></div>
+        <div class="kcard" draggable="true"><div class="kt">PM toolkit build-out</div><div class="kd">Discovery, prioritization frameworks, metrics trees, PRD writing — practiced daily from inside the product org</div><div class="km">CONTINUOUS DELIVERY</div></div>
+      </div>
+      <div class="kcol" data-col="next">
+        <h3><i></i>UP NEXT</h3>
+        <div class="kcard special" draggable="true" id="pmCard"><div class="kt">Product Manager @ your team</div><div class="kd">Ops-hardened, technically fluent, customer-obsessed. Ready to own outcomes, not just outputs.</div><div class="km">AWAITING GREENLIGHT ▸</div></div>
+      </div>
+    </div>
+    <div class="drag-hint">tip: cards are draggable — <b>try shipping the PM card</b> ↗</div>
+  </section>
+
+  <!-- CHANGELOG -->
+  <section id="changelog" class="rv">
+    <div class="mod-head"><span class="tag">MODULE_03</span><h2>Changelog</h2><div class="rule"></div></div>
+    <div class="panel clog">
+      <div class="ph"><div class="dot3"><i></i><i></i><i></i></div><span>RELEASES.md</span><span></span></div>
+      <div class="row"><span class="ver">v1.0.0</span><span class="date">2021-05</span><div class="desc">Initial release — <b>Class XII, 90%</b><small>C U Shah College, Mumbai. Core curiosity engine installed.</small></div></div>
+      <div class="row"><span class="ver">v1.5.0</span><span class="date">2022-12</span><div class="desc">Feature: <b>front-end development</b> unlocked<small>Internship @ YoursthatSenior — HTML/CSS/JS in production, +70% capability gain.</small></div></div>
+      <div class="row"><span class="ver">v2.0.0</span><span class="date">2025-05</span><div class="desc">Major: <b>B.E. Computer Science</b> — CGPA 8.20<small>Chandigarh University. Led CSI as President; 40% merit scholarship; 5× Best Geek; Mr. Omnipresent — Student of the Year.</small></div></div>
+      <div class="row"><span class="ver">v2.5.0</span><span class="date">2025-01</span><div class="desc">Enterprise mode: <b>Technical Support Specialist @ Cvent</b><small>Fortune-100 event-tech implementations. Salesforce + JIRA fluency. Learned that every support ticket is product discovery in disguise.</small></div></div>
+      <div class="row current"><span class="ver">v3.0.0</span><span class="date">2025-08</span><div class="desc">Current: <b>Product Ops @ GoKwik</b><small>Running the operational layer of product — workflows, data loops, launch coordination, stakeholder alignment. The PM apprenticeship, in production.</small></div></div>
+      <div class="row beta"><span class="ver">v4.0-beta</span><span class="date">SOON</span><div class="desc">In development: <b>Product Manager</b><small>Feature-complete. Pending deployment to the right team. Early access: see contact below.</small></div></div>
+    </div>
+  </section>
+
+  <!-- EXPERIMENTS -->
+  <section id="experiments" class="rv">
+    <div class="mod-head"><span class="tag">MODULE_04</span><h2>Experiments & learnings</h2><div class="rule"></div></div>
+    <div class="exps">
+      <div class="flip"><div class="flip-in">
+        <div class="face"><span class="fl">HYPOTHESIS_01</span><p>"Support tickets are product discovery in disguise."</p><span class="flipnote">hover / tap to see result →</span></div>
+        <div class="face back"><span class="fl">✓ VALIDATED @ CVENT</span><p>Turned Fortune-100 escalations into pattern maps of product friction — the fastest user-research I never had to schedule.</p></div>
+      </div></div>
+      <div class="flip"><div class="flip-in">
+        <div class="face"><span class="fl">HYPOTHESIS_02</span><p>"Ops friction silently kills product velocity."</p><span class="flipnote">hover / tap to see result →</span></div>
+        <div class="face back"><span class="fl">✓ VALIDATED @ GOKWIK</span><p>Streamlining handoffs between product, eng and CS returns more roadmap time than any planning ritual.</p></div>
+      </div></div>
+      <div class="flip"><div class="flip-in">
+        <div class="face"><span class="fl">HYPOTHESIS_03</span><p>"Data beats opinions in every prioritization fight."</p><span class="flipnote">hover / tap to see result →</span></div>
+        <div class="face back"><span class="fl">✓ VALIDATED @ GOKWIK</span><p>Insight loops and dashboards turn 'I think' debates into 'we know' decisions — and make roadmap calls defensible.</p></div>
+      </div></div>
+      <div class="flip"><div class="flip-in">
+        <div class="face"><span class="fl">HYPOTHESIS_04</span><p>"Technical depth makes a sharper PM."</p><span class="flipnote">hover / tap to see result →</span></div>
+        <div class="face back"><span class="fl">✓ VALIDATED — ONGOING</span><p>AWS, SQL, and front-end fluency mean I scope with engineers, not at them — and smell infeasible specs early.</p></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <section id="stack" class="rv">
+    <div class="mod-head"><span class="tag">MODULE_05</span><h2>Stack & integrations</h2><div class="rule"></div></div>
+    <div class="stackgrid">
+      <div class="panel"><div class="pb">
+        <h3>// product & ops</h3>
+        <span class="chip">Roadmapping</span><span class="chip">Prioritization</span><span class="chip">Stakeholder mgmt</span><span class="chip">Process automation</span><span class="chip">Launch coordination</span><span class="chip">Data-driven decisions</span><span class="chip">User empathy</span>
+      </div></div>
+      <div class="panel"><div class="pb">
+        <h3>// technical</h3>
+        <span class="chip">SQL · MySQL</span><span class="chip">HTML · CSS · JS</span><span class="chip">C++</span><span class="chip">Machine Learning</span><span class="chip">AWS Cloud</span><span class="chip">Salesforce</span><span class="chip">JIRA</span>
+      </div></div>
+      <div class="panel"><div class="pb">
+        <h3>// certifications & extras</h3>
+        <span class="chip">AWS Solutions Architect — Knowledge Badge</span><span class="chip">AWS Cloud Practitioner Essentials</span><span class="chip">🎤 Anchoring</span><span class="chip">🥋 Karate</span><span class="chip">🏏 Cricket</span><span class="chip">🎪 Event management</span>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="rv">
+    <div class="panel">
+      <h2>SHIP THE NEXT <span>RELEASE</span> TOGETHER</h2>
+      <p>v4.0 (Product Manager) is feature-complete and looking for a deployment target. If your team needs someone who's run product from the ops trenches — let's talk.</p>
+      <a class="btn btn-acc" href="mailto:tanmaytoshy@gmail.com">📧 INITIATE HANDSHAKE — tanmaytoshy@gmail.com</a>
+    </div>
+  </section>
+
+  <footer>TANMAY.OS v3.0 · GURGAON, IN · UPTIME <span id="uptime">0s</span> · BUILT WITH &lt;CODE/&gt; AND PRODUCT SENSE · © 2026</footer>
+</div>
+
+<!-- command palette -->
+<div id="palWrap">
+  <div id="pal">
+    <input id="palInput" placeholder="type a command… (try: roadmap, contact, hire)" autocomplete="off">
+    <div class="items" id="palItems"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* ===== boot sequence ===== */
+const bootLines=['mounting product_sense.dll','loading ops_experience @gokwik','syncing fortune100_learnings','compiling pm_ambition --release','ready.'];
+const bBar=document.getElementById('bootBar'),bLine=document.getElementById('bootLine');
+let bi=0;
+const bootIv=setInterval(()=>{
+  bi++;
+  bBar.style.width=Math.min(100,bi*20)+'%';
+  bLine.textContent='> '+bootLines[Math.min(bi-1,bootLines.length-1)];
+  if(bi>=6){clearInterval(bootIv);document.getElementById('boot').classList.add('done');
+    setTimeout(()=>toast('<b>v3.0.0 deployed</b> — Product Ops @ GoKwik'),900);
+    setTimeout(()=>toast('tip: press <b>⌘K / Ctrl+K</b> for the command palette'),3600);
+  }
+},260);
+
+/* ===== custom cursor ===== */
+const dot=document.getElementById('curDot'),ring=document.getElementById('curRing');
+let rx=0,ry=0,tx=0,ty=0;
+addEventListener('mousemove',e=>{tx=e.clientX;ty=e.clientY;dot.style.left=tx+'px';dot.style.top=ty+'px';});
+(function followRing(){rx+=(tx-rx)*.16;ry+=(ty-ry)*.16;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(followRing)})();
+document.querySelectorAll('a,button,[draggable],input,.flip').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));
+});
+
+/* ===== clock + uptime ===== */
+const t0=Date.now();
+setInterval(()=>{
+  document.getElementById('clock').textContent=new Date().toTimeString().slice(0,8);
+  const s=Math.floor((Date.now()-t0)/1000);
+  document.getElementById('uptime').textContent=(s>=60?Math.floor(s/60)+'m ':'')+(s%60)+'s';
+},1000);
+
+/* ===== ticker ===== */
+const tkTxt=' PRODUCT OPS @ GOKWIK ● OPEN TO <b>PRODUCT MANAGER</b> ROLES ● EX-CVENT · FORTUNE-100 SUPPORT ● AWS CERTIFIED ● B.E. CS · CGPA 8.20 ● GURGAON, IN ● ';
+document.getElementById('tk').innerHTML=tkTxt.repeat(4);
+
+/* ===== hero terminal typing ===== */
+const termScript=[
+  ['pr','$ whoami'],
+  ['',  'tanmay — product ops, future product manager'],
+  ['pr','$ cat strengths.txt'],
+  ['cy','→ turns support noise into product signal'],
+  ['cy','→ aligns eng × design × business without authority'],
+  ['cy','→ ships process, data loops & launches'],
+  ['pr','$ next_release --info'],
+  ['gd','v4.0 [PRODUCT MANAGER] — feature-complete, awaiting team'],
+];
+const termBody=document.getElementById('termBody');
+let li=0,chi=0,lineEl=null;
+function typeTerm(){
+  if(li>=termScript.length){termBody.insertAdjacentHTML('beforeend','<div><span class="pr">$ </span><span class="caret"></span></div>');return}
+  if(!lineEl){lineEl=document.createElement('div');if(termScript[li][0])lineEl.className=termScript[li][0];termBody.appendChild(lineEl)}
+  const txt=termScript[li][1];
+  lineEl.textContent=txt.slice(0,++chi);
+  if(chi>=txt.length){li++;chi=0;lineEl=null;setTimeout(typeTerm,termScript[li]&&termScript[li][1][0]==='$'?420:160)}
+  else setTimeout(typeTerm,18);
+}
+setTimeout(typeTerm,1800);
+
+/* ===== reveal + counters + sparklines ===== */
+function spark(cv){
+  const c=cv.getContext('2d'),W=cv.width=cv.offsetWidth*2,H=cv.height=60;
+  const n=24,data=[];let v=20+Math.random()*10;
+  for(let i=0;i<n;i++){v+=Math.random()*10-3.4;data.push(Math.max(6,Math.min(54,v)))}
+  let k=0;
+  (function draw(){
+    k=Math.min(1,k+.04);
+    c.clearRect(0,0,W,H);c.beginPath();
+    const m=Math.floor(n*k);
+    for(let i=0;i<m;i++){const x=i/(n-1)*W,y=H-data[i];i?c.lineTo(x,y):c.moveTo(x,y)}
+    c.strokeStyle='#c6ff4d';c.lineWidth=2.5;c.shadowColor='#c6ff4d';c.shadowBlur=8;c.stroke();
+    if(k<1)requestAnimationFrame(draw);
+  })();
+}
+const io=new IntersectionObserver(es=>{
+  for(const e of es){
+    if(!e.isIntersecting)continue;
+    e.target.classList.add('show');
+    e.target.querySelectorAll('[data-n]').forEach(el=>{
+      if(el.dataset.done)return;el.dataset.done=1;
+      const n=parseFloat(el.dataset.n),dec=+(el.dataset.dec||0),suf=el.dataset.suf||'',t0=performance.now();
+      (function tick(now){const k=Math.min(1,(now-t0)/1300),ez=1-Math.pow(1-k,3);
+        el.textContent=(n*ez).toFixed(dec)+suf;if(k<1)requestAnimationFrame(tick)})(t0);
+    });
+    e.target.querySelectorAll('canvas').forEach(cv=>{if(!cv.dataset.done){cv.dataset.done=1;spark(cv)}});
+    io.unobserve(e.target);
+  }
+},{threshold:.18});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+/* ===== kanban drag & drop ===== */
+let dragged=null;
+document.querySelectorAll('.kcard').forEach(c=>{
+  c.addEventListener('dragstart',()=>{dragged=c;c.classList.add('dragging')});
+  c.addEventListener('dragend',()=>{c.classList.remove('dragging');dragged=null});
+});
+document.querySelectorAll('.kcol').forEach(col=>{
+  col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('over')});
+  col.addEventListener('dragleave',()=>col.classList.remove('over'));
+  col.addEventListener('drop',e=>{
+    e.preventDefault();col.classList.remove('over');
+    if(!dragged)return;
+    col.appendChild(dragged);
+    if(dragged.id==='pmCard'&&col.dataset.col==='shipped'){
+      confettiBurst();
+      toast('🚀 <b>v4.0 SHIPPED!</b> You just greenlit my PM role — I admire your prioritization instincts. Let\'s make it official ↓');
+      document.querySelector('#pmCard .km').textContent='SHIPPED BY YOU ✓';
+    } else if(dragged.id==='pmCard'){
+      toast('moved to <b>'+col.dataset.col+'</b> — bold roadmap call.');
+    }
+  });
+});
+
+/* ===== flip cards: tap support ===== */
+document.querySelectorAll('.flip').forEach(f=>f.addEventListener('click',()=>f.classList.toggle('tapped')));
+
+/* ===== command palette ===== */
+const palWrap=document.getElementById('palWrap'),palIn=document.getElementById('palInput'),palItems=document.getElementById('palItems');
+const cmds=[
+  {n:'goto: metrics — why ops → product',k:'section',f:()=>jump('#metrics')},
+  {n:'goto: career roadmap (kanban)',k:'section',f:()=>jump('#roadmap')},
+  {n:'goto: changelog (releases)',k:'section',f:()=>jump('#changelog')},
+  {n:'goto: experiments & learnings',k:'section',f:()=>jump('#experiments')},
+  {n:'goto: stack & integrations',k:'section',f:()=>jump('#stack')},
+  {n:'contact: initiate handshake (email)',k:'action',f:()=>location.href='mailto:tanmaytoshy@gmail.com'},
+  {n:'sudo hire-tanmay --role=pm',k:'easter egg',f:()=>{closePal();confettiBurst();toast('🎉 <b>ACCESS GRANTED.</b> sudo privileges accepted — check contact section to finalize.')}},
+];
+let sel=0;
+function renderPal(q=''){
+  const list=cmds.filter(c=>c.n.toLowerCase().includes(q.toLowerCase()));
+  sel=Math.min(sel,Math.max(0,list.length-1));
+  palItems.innerHTML=list.map((c,i)=>`<div class="item${i===sel?' sel':''}" data-i="${cmds.indexOf(c)}"><span>${c.n}</span><span>${c.k}</span></div>`).join('')||'<div class="item"><span>no results — try "hire"</span></div>';
+  palItems.querySelectorAll('.item[data-i]').forEach(it=>it.addEventListener('click',()=>{cmds[+it.dataset.i].f();closePal()}));
+}
+function openPal(){palWrap.classList.add('open');palIn.value='';sel=0;renderPal();setTimeout(()=>palIn.focus(),50)}
+function closePal(){palWrap.classList.remove('open')}
+function jump(sel){closePal();document.querySelector(sel).scrollIntoView({behavior:'smooth'})}
+document.getElementById('palBtn').addEventListener('click',openPal);
+document.getElementById('palBtn2').addEventListener('click',openPal);
+palWrap.addEventListener('click',e=>{if(e.target===palWrap)closePal()});
+palIn.addEventListener('input',()=>{sel=0;renderPal(palIn.value)});
+addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();palWrap.classList.contains('open')?closePal():openPal()}
+  if(e.key==='Escape')closePal();
+  if(!palWrap.classList.contains('open'))return;
+  const list=cmds.filter(c=>c.n.toLowerCase().includes(palIn.value.toLowerCase()));
+  if(e.key==='ArrowDown'){e.preventDefault();sel=Math.min(sel+1,list.length-1);renderPal(palIn.value)}
+  if(e.key==='ArrowUp'){e.preventDefault();sel=Math.max(sel-1,0);renderPal(palIn.value)}
+  if(e.key==='Enter'&&list[sel]){list[sel].f();closePal()}
+});
+
+/* ===== toasts ===== */
+function toast(html){
+  const t=document.createElement('div');t.className='toast';t.innerHTML=html;
+  document.getElementById('toasts').appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('in'));
+  setTimeout(()=>{t.classList.remove('in');setTimeout(()=>t.remove(),500)},5200);
+}
+
+/* ===== confetti ===== */
+const ccv=document.getElementById('confetti'),cctx=ccv.getContext('2d');
+function confettiBurst(){
+  ccv.width=innerWidth;ccv.height=innerHeight;
+  const ps=[],colors=['#c6ff4d','#5ef2ff','#ff5470','#ffffff','#ffd23e'];
+  for(let i=0;i<160;i++)ps.push({
+    x:innerWidth/2,y:innerHeight*.4,
+    vx:(Math.random()-.5)*16,vy:Math.random()*-14-3,
+    g:.35,s:4+Math.random()*5,c:colors[i%colors.length],r:Math.random()*6.28,vr:(Math.random()-.5)*.3,life:1
+  });
+  (function anim(){
+    cctx.clearRect(0,0,ccv.width,ccv.height);
+    let alive=false;
+    for(const p of ps){
+      p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.r+=p.vr;p.life-=.008;
+      if(p.life>0&&p.y<innerHeight+20){alive=true;
+        cctx.save();cctx.translate(p.x,p.y);cctx.rotate(p.r);cctx.globalAlpha=Math.max(0,p.life);
+        cctx.fillStyle=p.c;cctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cctx.restore();
+      }
+    }
+    if(alive)requestAnimationFrame(anim);else cctx.clearRect(0,0,ccv.width,ccv.height);
+  })();
+}
+</script>
+</body>
+</html>
